@@ -15,6 +15,7 @@
 # Simulink Code Generation
 slprj/
 
+# NO IMAGES IN THE GITHUB REPO, GOOD LORD.
 *.czi
 
 ## Python files
