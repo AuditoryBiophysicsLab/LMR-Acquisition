@@ -17,6 +17,11 @@ slprj/
 
 # NO IMAGES IN THE GITHUB REPO, GOOD LORD.
 *.czi
+*.tiff
+*.jpg
+*.gif
+*.jpeg
+*.bmp
 
 ## Python files
 
