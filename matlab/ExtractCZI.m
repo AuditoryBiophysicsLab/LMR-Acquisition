@@ -12,8 +12,7 @@ function ExtractCZI(fileName)
     dataDir = fullfile(path,name);    
     assert(mkdir(dataDir)==1, 'error creating directory!');    
     %% serialize the metadata to XML
-    metadata=char(s{1,4}.dumpXML());
-    %save(fullfile(dataDir,[name,'-metadata.xml']),'metadata','-ascii');    
+    metadata=char(s{1,4}.dumpXML()); 
     fid=fopen(fullfile(dataDir,[name,'-metadata.xml']),'w');
     fprintf(fid,metadata);
     fclose(fid);
