@@ -1,48 +1,69 @@
-function [] = consolidate( dir_array )
-%Testing function for consolidate.m
-%dir_array must be a cell array of strings specifying paths to directories
-%of dicoms to analyze.
-%consolidate.m loops through specified directories, determines uniqueness
-%of each image by comparing SliceLocation attribute of .dcm file and copies
-%to new directory.
+function [] = consolidate()
+%REMEMBER TO CHANGE INPUT METHOD AND EDIT COMMENT HEADER
 
-%Get cell array of directory structures
-dir_array = reshape(dir_array,1,numel(dir_array));
-numdir = length(dir_array);
-file_array = cell(1,numdir);
-for a = 1:numdir
-    file_array{a} = ls(dir_array{a});
-end
-disp('Directories loaded.');
+%Allows a user to graphically select a directory whose children are
+%directories of dicoms to be consolidated.
+%The directory of consolidated of dicoms will be a child of the specified
+%parent directory.
+%If this function needs to run in an automated fashion, one can add an
+%input argument parent_dir and comment/remove the line that defines
+%parent-dir with uigetdir. That way, parent-dir can be inputed as a string
+%when called by some main script.
 
-%Get unique files
+%Initial Configuration (ConfigurationCheck.m must be in the same directory as consolidate.m):
+assert(ConfigurationCheck == 1,'Configuration Incorrect, check path');
+
+%Recursively acquires paths of all files in parent directory:
+parent_dir = uigetdir('','Select Parent Directory');
+file_paths = get_files(parent_dir);
+fprintf('All files loaded.\n');  %Report progress to console
+
+%Get unique files:
 slice_locations = [];  %Vector of SliceLocations
 count = 1;  %Used to iterate below
-file_paths = cell(1,1);  %Cell array of filepaths to dicoms determined to be unique
-mkdir C:\consolidated\
+[r,~] = size(file_paths);
+unique_paths = cell(r,1);  %Initialize cell array for paths of unique dicoms
 
-for b = 1:numel(dir_array)
-    %b loops through directories of interest
-    [r,~] = size(file_array{b});  %r = number of items in direcyory b
-    for c = 3:r
-        %c loops through all files on directory at a time; begins at 3 because first two items are always . and ..
-        current_filepath = sprintf('%s\\%s',dir_array{b},file_array{b}(c,:));  %Make string of full file path
-        temp_info = dicominfo(current_filepath);  %Makes struct of all attributes of dicom file
-        if ~ismember(temp_info.SliceLocation,slice_locations)  %If this SliceLocation hasn't been seen yet
-            slice_locations(count) = temp_info.SliceLocation;  %Add this SliceLocation to slice_locations vector
-            file_paths{count} = current_filepath;  %Add this filepath to array of trusted file paths
-            count = count + 1;  %Iterate
-        end
+%Compare a SliceLocation to list of  those already checked
+for a = 1:numel(file_paths)
+    temp_info = dicominfo(file_paths{a});  %Temp struct of dicom metadata
+    temp_sl = temp_info.SliceLocation;  %Temp SliceLocation
+    if ~ismember(temp_sl,slice_locations)
+        slice_locations(count) = temp_sl;
+        unique_paths{count} = file_paths{a};
+        count = count + 1;
     end
 end
-disp('Unique slices found.');
+unique_paths = unique_paths(1:count - 1);
+clear count slide_locations r file_paths
+fprintf('Unique slices found.\n');  %Report progress to console
 
 %Copy files whose slice location hadn't been seen yet into a new directory
 disp('Copying files.');
-for d = 1:numel(file_paths)  %Copy truested files to new location
-    copyfile(char(file_paths(d)),'C:\consolidated\');
+destination = fullfile(parent_dir,'consolidated');
+mkdir(destination);
+for b = 1:numel(unique_paths)  %Copy truested files to new location
+    copyfile(char(unique_paths{b}),destination);
 end
-disp('Complete. Files located at C:\consloidated\');
+fprintf('Complete. Files located at %s\n',destination);  %Report progress to console
 
 end
 
+function file_paths = get_files(directory)
+dir_data = dir(directory);  %Get the data for directory
+dir_index = [dir_data.isdir];  %Find the index for directories
+file_paths = {dir_data(~dir_index).name}';  %Get a list of the files
+  
+if ~isempty(file_paths)
+    file_paths = cellfun(@(x) fullfile(directory,x),file_paths,'UniformOutput',false);  %Prepend path to files
+end
+  
+sub_dirs = {dir_data(dir_index).name};  %Get a list of  subdirectories
+validIndex = ~ismember(sub_dirs,{'.','..'});  %Find index of subdirectories that are not '.' or '..'
+  
+for n = find(validIndex)  %Loop over valid subdirectories
+    next_dir = fullfile(directory,sub_dirs{n});  %Get  subdirectory path
+    file_paths = [file_paths; get_files(next_dir)];  %Recursively call get_files
+end
+
+end

@@ -6,6 +6,6 @@ function result = ConfigurationCheck()
     m=Mongo('roundwindow.ad.bu.edu');
     assert(m.checkConnection==1,'Connection to Roundwindow could not be established');
     clear m;
-    MongoStop();    
+    MongoStop();
     result = 1;
 end
