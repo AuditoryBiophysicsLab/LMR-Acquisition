@@ -1,4 +1,4 @@
-function [] = consolidate()
+function [] = consolidate(myfname)
 %REMEMBER TO CHANGE INPUT METHOD AND EDIT COMMENT HEADER
 
 %Allows a user to graphically select a directory whose children are
@@ -38,12 +38,24 @@ unique_paths = unique_paths(1:count - 1);
 clear count slide_locations r file_paths
 fprintf('Unique slices found.\n');  %Report progress to console
 
+
 %Copy files whose slice location hadn't been seen yet into a new directory
+%and change the metadata so that Amira reads the dicoms as one stack
 disp('Copying files.');
 destination = fullfile(parent_dir,'consolidated');
 mkdir(destination);
+%first_meta = dicomread(unique_paths{1});
+%mySeriesUID = first_meta.SeriesInstanceUID;
+%copyfile(char(unique_paths{1}),destination);
 for b = 1:numel(unique_paths)  %Copy truested files to new location
-    copyfile(char(unique_paths{b}),destination);
+    temp_file = dicomread(unique_paths{b});
+    temp_meta = dicominfo(unique_paths{b});
+    temp_meta.SeriesInstanceUID = '1';
+    temp_meta.SeriesNumber = 1;
+    dicomwrite(temp_file,fullfile(destination,sprintf('%s_%d.dcm',myfname,b)),temp_meta);
+    %dicomwrite(temp_file,fullfile(destination,unique_paths{b}),temp_meta);
+    %copyfile(sprintf('%s%d.dcm',myfname,b),destination);
+    %copyfile(fullfile(destination,unique_paths{b}));
 end
 fprintf('Complete. Files located at %s\n',destination);  %Report progress to console
 
@@ -62,7 +74,7 @@ sub_dirs = {dir_data(dir_index).name};  %Get a list of  subdirectories
 validIndex = ~ismember(sub_dirs,{'.','..'});  %Find index of subdirectories that are not '.' or '..'
   
 for n = find(validIndex)  %Loop over valid subdirectories
-    next_dir = fullfile(directory,sub_dirs{n});  %Get  subdirectory path
+    next_dir = fullfile(directory,sub_dirs{n});  %Get subdirectory path
     file_paths = [file_paths; get_files(next_dir)];  %Recursively call get_files
 end
 
